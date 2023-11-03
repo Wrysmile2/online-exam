@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xyh.mapper.MessageUserMapper">
+
+    <resultMap id="BaseResultMap" type="com.xyh.pojo.MessageUser">
+            <id property="id" column="id" jdbcType="INTEGER"/>
+            <result property="receiveId" column="receive_id" jdbcType="INTEGER"/>
+            <result property="createUser" column="create_user" jdbcType="INTEGER"/>
+            <result property="readed" column="readed" jdbcType="BIT"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="readTime" column="read_time" jdbcType="TIMESTAMP"/>
+            <result property="messageId" column="message_id" jdbcType="INTEGER"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,receive_id,create_user,
+        read,create_time,read_time,
+        message_id
+    </sql>
+</mapper>

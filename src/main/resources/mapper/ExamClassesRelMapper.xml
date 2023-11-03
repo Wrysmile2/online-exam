@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xyh.mapper.ExamClassesRelMapper">
+
+    <resultMap id="BaseResultMap" type="com.xyh.pojo.ExamClassesRel">
+            <id property="id" column="id" jdbcType="INTEGER"/>
+            <result property="classesId" column="classes_id" jdbcType="INTEGER"/>
+            <result property="examId" column="exam_id" jdbcType="INTEGER"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,classes_id,exam_id
+    </sql>
+    <insert id="saveBatch">
+        insert into tbl_exam_classes_rel (classes_id,exam_id)
+        values
+        <foreach collection="list" item="item" separator=",">
+           ( #{item.classesId} , #{item.examId})
+        </foreach>
+    </insert>
+    <select id="selectCountByCondition" resultType="java.lang.Integer">
+        SELECT
+            count(a.id)
+        FROM
+            tbl_exam_record a
+                LEFT JOIN tbl_user b ON a.create_user = b.id
+        WHERE
+            classes_id = #{classesId}
+          AND exam_id = #{examId}
+    </select>
+</mapper>

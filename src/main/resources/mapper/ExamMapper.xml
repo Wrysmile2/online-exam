@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xyh.mapper.ExamMapper">
+
+    <resultMap id="BaseResultMap" type="com.xyh.pojo.Exam">
+            <id property="id" column="id" jdbcType="INTEGER"/>
+            <result property="examName" column="exam_name" jdbcType="VARCHAR"/>
+            <result property="examTotal" column="exam_total" jdbcType="DOUBLE"/>
+            <result property="beginTime" column="begin_time" jdbcType="TIMESTAMP"/>
+            <result property="endTime" column="end_time" jdbcType="TIMESTAMP"/>
+            <result property="examTime" column="exam_time" jdbcType="INTEGER"/>
+            <result property="subjectId" column="subject_id" jdbcType="INTEGER"/>
+            <result property="createUser" column="create_user" jdbcType="INTEGER"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="deleted" column="deleted" jdbcType="BIT"/>
+    </resultMap>
+
+    <resultMap id="respPageMap" type="com.xyh.vo.response.admin.ExamPageRespVO">
+        <id property="id" column="id" jdbcType="INTEGER"/>
+        <result property="examName" column="exam_name" jdbcType="VARCHAR"/>
+        <result property="examTotal" column="exam_total" jdbcType="DOUBLE"/>
+        <result property="beginTime" column="begin_time" jdbcType="TIMESTAMP"/>
+        <result property="endTime" column="end_time" jdbcType="TIMESTAMP"/>
+<!--        <result property="levelName" column="level_name" jdbcType="VARCHAR"/>-->
+        <result property="subjectName" column="subject_name" jdbcType="INTEGER"/>
+        <result property="username" column="username" jdbcType="INTEGER"/>
+        <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <resultMap id="examRespMap" type="com.xyh.vo.response.teacher.ExamRespVO" extends="BaseResultMap">
+        <result property="subjectName" column="subject_name" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <resultMap id="indexMap" type="com.xyh.vo.response.student.StuExamRespVO" extends="BaseResultMap">
+        <result property="subjectName" column="subject_name" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <resultMap id="ScoreMap" type="com.xyh.vo.response.teacher.ScoreRespVO">
+        <result property="examName" column="exam_name" jdbcType="VARCHAR"/>
+        <result property="classesName" column="classes_name" jdbcType="VARCHAR"/>
+        <result property="examId" column="exam_id" jdbcType="INTEGER"/>
+        <result property="classesId" column="classes_id" jdbcType="INTEGER"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,exam_name,exam_total,
+        begin_time,end_time,exam_time,
+        subject_id,create_user,create_time,
+        deleted
+    </sql>
+    <delete id="delById">
+        update tbl_exam set deleted = true where id = #{id}
+    </delete>
+    <select id="getPageList" resultMap="respPageMap">
+        select a.id,b.subject_name,exam_name,exam_total,begin_time,end_time,c.username,a.create_time from tbl_exam a
+           left join tbl_subject b
+                on a.subject_id = b.id
+           left join tbl_user c
+                on a.create_user = c.id
+        <where>
+            <if test="vo.deleted != null">
+                and a.deleted = #{vo.deleted}
+            </if>
+<!--            <if test="vo.userLevel != null and vo.userLevel != 0">-->
+<!--                and b.level_grade = #{vo.userLevel}-->
+<!--            </if>-->
+            <if test="vo.subjectId != null and vo.subjectId != 0">
+                and a.subject_id = #{vo.subjectId}
+            </if>
+            <if test="vo.examName != null and vo.examName != ''">
+                <bind name="name" value="'%'+vo.examName+'%'"/>
+                and a.exam_name like #{name}
+            </if>
+        </where>
+        order by a.create_time desc
+    </select>
+
+    <select id="selectExamById" resultMap="examRespMap">
+        select a.id, exam_name,exam_time,begin_time,end_time,exam_total,subject_id,subject_name from tbl_exam a
+            left join tbl_subject b
+           on a.subject_id = b.id
+        where a.id = #{id}
+    </select>
+
+    <select id="selectRecentExam" resultMap="indexMap">
+        SELECT
+            a.id,
+            a.exam_name,
+            a.exam_total,
+            d.subject_name,
+            a.begin_time,
+            a.end_time,
+            a.exam_time,
+            c.questionSum
+        FROM
+            tbl_exam a
+                INNER JOIN (
+                SELECT
+                    exam_id
+                FROM
+                    tbl_exam_classes_rel
+                WHERE
+                    classes_id = #{classesId}
+            ) b ON a.id = b.exam_id
+                INNER JOIN (
+                SELECT
+                    exam_id,
+                    count(id) AS questionSum
+                FROM
+                    tbl_question_exam_rel
+                GROUP BY
+                    exam_id
+            ) c ON a.id = c.exam_id
+                INNER JOIN tbl_subject d ON d.id = a.subject_id
+            WHERE a.end_time &gt; NOW()
+            ORDER BY a.begin_time ASC
+            limit 0,7
+    </select>
+    <select id="getStuExamList" resultMap="indexMap">
+        SELECT
+            a.id,
+            a.exam_name,
+            a.exam_total,
+            d.subject_name,
+            a.begin_time,
+            a.end_time,
+            a.exam_time,
+            c.questionSum
+        FROM
+            tbl_exam a
+        INNER JOIN (
+            SELECT
+                exam_id
+            FROM
+                tbl_exam_classes_rel
+            WHERE
+                classes_id = #{vo.classesId}
+        ) b ON a.id = b.exam_id
+        INNER JOIN (
+            SELECT
+                exam_id,
+                count(id) AS questionSum
+            FROM
+                tbl_question_exam_rel
+            GROUP BY
+                exam_id
+        ) c ON a.id = c.exam_id
+        INNER JOIN tbl_subject d ON d.id = a.subject_id
+        <where>
+            <if test="vo.subjectId != -1 and vo.subjectId != null">
+                and d.id = #{vo.subjectId}
+            </if>
+            <if test="vo.isfinished == 2">
+                and a.end_time &lt; NOW()
+            </if>
+            <if test="vo.isfinished == 1">
+                and NOW() BETWEEN a.begin_time AND a.end_time
+            </if>
+            <if test="vo.isfinished == 0">
+                and a.begin_time &gt; NOW()
+            </if>
+        </where>
+        order by a.begin_time desc
+    </select>
+    <select id="selectScorePage" resultMap="ScoreMap">
+        SELECT
+            b.classes_id,
+            b.exam_id,
+            a.exam_name,
+            c.classes_name
+        FROM
+            tbl_exam a
+                INNER JOIN tbl_exam_classes_rel b ON a.id = b.exam_id
+                LEFT JOIN tbl_classes c ON c.id = b.classes_id
+        WHERE
+            a.end_time &lt; NOW()
+            <if test="vo.classesId != 0 and vo.classesId != null">
+                AND b.classes_id = #{vo.classesId}
+            </if>
+            <if test="vo.examName != '' and vo.examName != null">
+                <bind name="name" value="'%'+vo.examName+'%'"/>
+                AND a.exam_name LIKE #{name}
+            </if>
+        ORDER BY a.end_time DESC
+    </select>
+    <select id="getExamKVS" resultType="com.xyh.vo.response.other.KeyValue">
+        SELECT
+            IFNULL(`count`,0) `value`,
+            a.subject_name `name`
+        FROM
+            tbl_subject a
+                LEFT JOIN (
+                SELECT
+                    count(*) `count`,
+                    subject_id
+                FROM
+                    tbl_exam
+                WHERE
+                    deleted = FALSE
+                GROUP BY
+                    subject_id
+            ) b ON b.subject_id = a.id
+        WHERE a.deleted = FALSE
+    </select>
+</mapper>

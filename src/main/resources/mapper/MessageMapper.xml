@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xyh.mapper.MessageMapper">
+
+    <resultMap id="BaseResultMap" type="com.xyh.pojo.Message">
+            <id property="id" column="id" jdbcType="INTEGER"/>
+            <result property="messageContent" column="message_content" jdbcType="VARCHAR"/>
+            <result property="receiveNum" column="receive_num" jdbcType="INTEGER"/>
+            <result property="actualReceiveNum" column="actual_receive_num" jdbcType="INTEGER"/>
+            <result property="createUser" column="create_user" jdbcType="INTEGER"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+    </resultMap>
+    <resultMap id="MessageRespVOMap" type="com.xyh.vo.response.admin.MessageRespVO">
+        <id property="id" column="id" jdbcType="INTEGER"/>
+        <result property="messageContent" column="message_content" jdbcType="VARCHAR"/>
+        <result property="receiveNum" column="receive_num" jdbcType="INTEGER"/>
+        <result property="actualReceiveNum" column="actual_receive_num" jdbcType="INTEGER"/>
+        <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+    </resultMap>
+    <resultMap id="stuListMap" type="com.xyh.vo.response.student.StuMessageRespVO" extends="BaseResultMap">
+        <result property="username" column="username" jdbcType="VARCHAR"/>
+        <result property="readed" column="readed" jdbcType="BIT"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,message_content,receive_num,
+        actual_receive_num,create_user,create_time
+    </sql>
+    <update id="updateReadCount">
+        update tbl_message set actual_receive_num = actual_receive_num +1 where id = #{messageId} and actual_receive_num =
+        (select actual_receive_num from
+        (select actual_receive_num from tbl_message where id = #{messageId}) m)
+    </update>
+    <select id="getByPage" resultMap="MessageRespVOMap">
+        select a.*,b.username sendUserName from tbl_message a inner join tbl_user b
+        on a.create_user = b.id
+        <where>
+            <if test="vo.sendUserName != null and vo.sendUserName != ''">
+            <bind name="username" value="'%'+vo.sendUserName+'%'"/>
+                b.username like #{username}
+            </if>
+        </where>
+    </select>
+    <select id="selectStuList" resultMap="stuListMap">
+        select b.id,a.title,b.readed,a.create_time,a.message_content,c.username
+        from tbl_message  a
+         left join tbl_message_user b
+           on a.id = b.message_id
+         left join tbl_user c
+           on a.create_user = c.id
+        where b.receive_id = #{userId}
+        order by a.create_time desc
+    </select>
+</mapper>

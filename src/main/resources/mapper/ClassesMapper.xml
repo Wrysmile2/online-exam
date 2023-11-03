@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xyh.mapper.ClassesMapper">
+
+    <resultMap id="BaseResultMap" type="com.xyh.pojo.Classes">
+            <id property="id" column="id" jdbcType="INTEGER"/>
+            <result property="classesName" column="classes_name" jdbcType="VARCHAR"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="createUser" column="create_user" jdbcType="INTEGER"/>
+            <result property="deleted" column="deleted" jdbcType="BIT"/>
+    </resultMap>
+    <resultMap id="PageMap" type="com.xyh.vo.response.teacher.ClassesRespVO" extends="BaseResultMap">
+        <result property="username" column="username" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,classes_name,create_time,
+        create_user,deleted
+    </sql>
+    <delete id="delBatch">
+        UPDATE tbl_classes
+        SET deleted = TRUE
+        WHERE
+            id IN
+        <foreach collection="list" item="item" separator="," open="(" close=")">
+            #{item}
+        </foreach>
+    </delete>
+    <select id="selectByExamId" resultType="java.lang.String">
+        SELECT
+            classes_name
+        FROM
+            tbl_exam_classes_rel a
+                LEFT JOIN tbl_classes b ON a.classes_id = b.id
+        WHERE
+            exam_id = #{examId}
+    </select>
+    <select id="selectPageList" resultMap="PageMap">
+        SELECT
+            a.*, b.username
+        FROM
+            tbl_classes a
+                LEFT JOIN tbl_user b ON a.create_user = b.id
+        WHERE
+            a.deleted = false
+            <if test="vo.classesName != '' and vo.classesName != null">
+                <bind name="name" value="'%'+vo.classesName+'%'"/>
+                and classes_name like #{name}
+            </if>
+    </select>
+
+    <select id="selectCountByClassId" resultType="com.xyh.vo.request.teacher.CountVO">
+            SELECT
+                count(*) as count,
+                classes_id as id
+            FROM
+                tbl_user
+            WHERE
+                role = 2
+            GROUP BY
+                classes_id
+    </select>
+</mapper>

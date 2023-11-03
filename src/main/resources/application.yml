@@ -1,0 +1,61 @@
+server:
+  port: 8080
+spring:
+  redis:
+    database: 1
+    host: 192.168.43.150
+    #password:
+    port: 9090
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher  #2.6以后mvc的默认路径匹配策略从AntPathMatcher改为另外一种，导致knife4j出错
+  rabbitmq:  #mq相关的配置
+    username: guest
+    password: guest
+    #virtual-host: my_vhost
+    host: 192.168.43.150
+    port: 5672
+    listener:
+      direct:
+        prefetch: 1
+  application:
+    name: onlineEduExam
+  datasource:
+    druid:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      username: root
+      password: 123456
+      url: jdbc:mysql://localhost:3306/onlineeduexam?useSSL=false&useUnicode=true&characterEncoding=UTF-8&allowMultiQueries=true  #allowMultiQueries=true的时候，允许使用foreach标签进行批量修改等操作
+  main:
+    allow-circular-references: true
+  mail:
+    host: smtp.qq.com
+    username: 192.168.43.150@qq.com
+    password: hfsuaarfqeshbbgd
+    port: 465
+    properties:
+      mail:
+        smtp:
+          auth: true
+          socketFactory:
+            class: javax.net.ssl.SSLSocketFactory
+          starttls:
+            enable: true
+
+# mybatis-plus的配置
+mybatis-plus:
+  configuration:
+    #mp开启驼峰命名的映射
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      table-prefix: tbl_
+  mapper-locations: classpath:/mapper/*.xml
+
+#  对于图片存储的位置
+img:
+  basePath: D:\IDEA\ExamDesign\src\main\resources\static\avatar\
+
+

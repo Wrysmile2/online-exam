@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xyh.mapper.ExamQuestionAnswerMapper">
+
+    <resultMap id="BaseResultMap" type="com.xyh.pojo.ExamQuestionAnswer">
+            <id property="id" column="id" jdbcType="INTEGER"/>
+            <result property="answer" column="answer" jdbcType="VARCHAR"/>
+            <result property="score" column="score" jdbcType="DOUBLE"/>
+            <result property="correctError" column="correct_error" jdbcType="BIT"/>
+            <result property="examId" column="exam_id" jdbcType="INTEGER"/>
+            <result property="questionId" column="question_id" jdbcType="INTEGER"/>
+            <result property="createUser" column="create_user" jdbcType="INTEGER"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,answer,score,
+        correct_error,exam_id,question_id,
+        create_user
+    </sql>
+
+    <resultMap id="examViewMap" type="com.xyh.vo.response.student.ExamViewAnswerItem" extends="BaseResultMap">
+        <result property="questionId" column="question_id" jdbcType="INTEGER"/>
+        <result property="questionName" column="question_name" jdbcType="VARCHAR"/>
+        <result property="questionType" column="question_type" jdbcType="INTEGER"/>
+        <result property="questionScore" column="question_score" jdbcType="DOUBLE"/>
+        <result property="questionDesc" column="question_desc" jdbcType="VARCHAR"/>
+        <result property="correctAnswer" column="correct_answer" jdbcType="VARCHAR"/>
+        <result property="answerA" column="answer_a" jdbcType="VARCHAR"/>
+        <result property="answerB" column="answer_b" jdbcType="VARCHAR"/>
+        <result property="answerC" column="answer_c" jdbcType="VARCHAR"/>
+        <result property="answerD" column="answer_d" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="selectExamViewList" resultMap="examViewMap">
+        select a.id,a.answer,a.question_id,a.score,a.correct_error,
+               b.question_name,b.question_type,c.question_score,
+               b.answer_a,b.answer_b,b.answer_c,b.answer_d,b.correct_answer,
+               b.question_desc from (
+                select id,question_id,answer,score,correct_error from tbl_exam_question_answer where create_user = #{userId} and exam_id = #{examId}) a
+                left join tbl_question b
+                  on a.question_id = b.id
+                left join tbl_question_exam_rel c
+                  on b.id = c.question_id and c.exam_id = #{examId}
+    </select>
+</mapper>

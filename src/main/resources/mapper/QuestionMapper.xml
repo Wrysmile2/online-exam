@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xyh.mapper.QuestionMapper">
+
+    <resultMap id="BaseResultMap" type="com.xyh.pojo.Question">
+            <id property="id" column="id" jdbcType="INTEGER"/>
+            <result property="questionName" column="question_name" jdbcType="VARCHAR"/>
+            <result property="questionType" column="question_type" jdbcType="INTEGER"/>
+            <result property="questionScore" column="question_score" jdbcType="DOUBLE"/>
+            <result property="answerA" column="answer_a" jdbcType="VARCHAR"/>
+            <result property="answerB" column="answer_b" jdbcType="VARCHAR"/>
+            <result property="answerC" column="answer_c" jdbcType="VARCHAR"/>
+            <result property="answerD" column="answer_d" jdbcType="VARCHAR"/>
+            <result property="difficulty" column="difficulty" jdbcType="DOUBLE"/>
+            <result property="correctAnswer" column="correct_answer" jdbcType="VARCHAR"/>
+            <result property="questionDesc" column="question_desc" jdbcType="VARCHAR"/>
+            <result property="subjectId" column="subject_id" jdbcType="INTEGER"/>
+            <result property="createUser" column="create_user" jdbcType="INTEGER"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="deleted" column="deleted" jdbcType="BIT"/>
+    </resultMap>
+    <resultMap id="pageMap" type="com.xyh.vo.response.admin.QuestionPageRespVO">
+        <id property="id" column="id" jdbcType="INTEGER"/>
+        <result property="questionName" column="question_name" jdbcType="VARCHAR"/>
+        <result property="questionType" column="question_type" jdbcType="INTEGER"/>
+        <result property="questionScore" column="question_score" jdbcType="DOUBLE"/>
+        <result property="subjectName" column="subject_name" jdbcType="VARCHAR"/>
+        <result property="username" column="username" jdbcType="VARCHAR"/>
+        <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <resultMap id="addPageMap" type="com.xyh.vo.response.admin.AddQuestionPageRespVO">
+        <id property="id" column="id" jdbcType="INTEGER"/>
+        <result property="questionName" column="question_name" jdbcType="VARCHAR"/>
+        <result property="questionType" column="question_type" jdbcType="INTEGER"/>
+        <result property="questionScore" column="question_score" jdbcType="DOUBLE"/>
+        <result property="answerA" column="answer_a" jdbcType="VARCHAR"/>
+        <result property="answerB" column="answer_b" jdbcType="VARCHAR"/>
+        <result property="answerC" column="answer_c" jdbcType="VARCHAR"/>
+        <result property="answerD" column="answer_d" jdbcType="VARCHAR"/>
+    </resultMap>
+    <resultMap id="questionItem" extends="addPageMap" type="com.xyh.vo.response.teacher.QuestionItem">
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,question_name,question_type,
+        question_score,answer_a,answer_b,
+        answer_c,answer_d,correct_answer,
+        question_desc,subject_id,create_user,
+        create_time,deleted
+    </sql>
+    <delete id="delByIds">
+        update tbl_question SET deleted = true
+        <where>
+            id in
+            <foreach collection="ids" item="id" open="(" close=")" separator=",">
+                #{id}
+            </foreach>
+        </where>
+    </delete>
+    <select id="getQuestionKeyValue" resultType="com.xyh.vo.response.other.KeyValue">
+        SELECT
+            IFNULL(`count`,0) `value`,
+            subject_name `name`
+        FROM
+            tbl_subject a
+                LEFT JOIN (
+                SELECT
+                    count(*) `count`,
+                    subject_id
+                FROM
+                    tbl_question
+                WHERE
+                    deleted = FALSE
+                GROUP BY
+                    subject_id
+            ) b ON subject_id = a.id
+        WHERE a.deleted = FALSE
+    </select>
+    <select id="getPageList" resultMap="pageMap">
+        select a.id,a.question_name,a.question_type,a.question_score, a.create_time , b.subject_name,c.username
+        from tbl_question a
+         INNER JOIN tbl_subject b
+            ON a.subject_id = b.id
+         INNER JOIN tbl_user c
+            ON a.create_user = c.id
+        <where>
+            <if test="vo.questionType != null and vo.questionType != 0">
+              and  question_type = #{vo.questionType}
+            </if>
+            <if test="vo.questionName != null and vo.questionName != ''">
+                <bind name="name" value="'%'+vo.questionName+'%'"/>
+              and  a.question_name like #{name}
+            </if>
+            <if test="vo.subjectIds != null">
+              and  a.subject_id in
+                <foreach collection="vo.subjectIds" item="id" separator="," open="(" close=")">
+                    #{id}
+                </foreach>
+            </if>
+            <if test="vo.deleted != null">
+              and  a.deleted = false
+            </if>
+        </where>
+        order by a.create_time desc
+    </select>
+    <select id="getPreview" resultMap="BaseResultMap">
+        select question_name,
+               question_score,
+               question_type,
+               answer_a,
+               answer_b,
+               answer_c,
+               answer_d
+        from tbl_question where id = #{id}
+    </select>
+
+    <select id="getAddPageList" resultMap="addPageMap">
+        select id,question_name,answer_a,answer_b,answer_c,answer_d,question_type,question_score from tbl_question
+        where deleted = false 
+        <if test="vo.subjectId != null and vo.subjectId != 0 ">
+            and subject_id = #{vo.subjectId}
+        </if>
+        <if test="vo.questionType != 0 and vo.questionType != null">
+            and question_type = #{vo.questionType}
+        </if>
+        <if test="vo.questionName != '' and vo.questionName != null">
+            <bind name="name" value="'%'+vo.questionName+'%'"/>
+            and question_name like #{name}
+        </if>
+        order by create_time desc
+    </select>
+    <select id="selectQuesItems" resultMap="questionItem">
+        select  c.id, question_name,answer_a,answer_b,answer_c,answer_d,question_type,b.question_score
+        from tbl_exam a
+         left join tbl_question_exam_rel b
+                   on a.id = b.exam_id
+         left join tbl_question c
+                   on c.id = b.question_id
+        where a.id = #{id}
+    </select>
+    <select id="selectIdList" resultType="java.lang.Integer">
+        select id from tbl_question
+        where subject_id = #{subjectId} and question_type in (1,2,3) order by create_time asc
+    </select>
+    <select id="selectStartId" resultType="java.lang.Integer">
+        select id from tbl_question
+        where create_time = (select MIN(create_time) from tbl_question where subject_id = #{subjectId} and question_type in(1,2,3))
+    </select>
+    <select id="selectQuestionListByExamId"  resultMap="BaseResultMap">
+--             2023-03-14改造试卷查询出来的试卷的分数，采用tbl_question_exam_rel
+            select b.id, question_name , question_type,answer_a,answer_b,answer_c,answer_d,a.question_score from
+            (select exam_id,question_id,question_score from tbl_question_exam_rel where exam_id = #{examId}) a
+            left join  tbl_question b
+               on a.question_id = b.id
+    </select>
+    <select id="selectQuestionCount" resultType="com.xyh.vo.response.teacher.AutoKeyValue">
+        select count(id) count,question_type type from tbl_question
+        where deleted = false and subject_id = #{subjectId}
+        group by question_type
+    </select>
+    <select id="selectByCondition" resultMap="BaseResultMap">
+        select id,question_score from tbl_question where deleted = false and question_type = #{type} and subject_id = #{subjectId}
+    </select>
+    <select id="selectByIds" resultMap="BaseResultMap">
+        select question_type,correct_answer,b.question_score from tbl_question a
+          inner join tbl_question_exam_rel b
+                     on a.id = b.question_id and b.exam_id = #{examId}
+        where question_id = #{questionId}
+    </select>
+</mapper>

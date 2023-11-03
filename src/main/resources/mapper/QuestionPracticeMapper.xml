@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xyh.mapper.QuestionPracticeMapper">
+
+    <resultMap id="BaseResultMap" type="com.xyh.pojo.QuestionPractice">
+            <id property="id" column="id" jdbcType="INTEGER"/>
+            <result property="practiceAnswer" column="practice_answer" jdbcType="VARCHAR"/>
+            <result property="subjectId" column="subject_id" jdbcType="INTEGER"/>
+            <result property="questionId" column="question_id" jdbcType="INTEGER"/>
+            <result property="createUser" column="create_user" jdbcType="INTEGER"/>
+            <result property="correct" column="correct" jdbcType="BIT"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <resultMap id="practiceListMap" type="com.xyh.vo.response.student.PracticeListRespVO">
+        <result property="id" column="id" jdbcType="INTEGER"/>
+        <result property="subjectName" column="subject_name" jdbcType="VARCHAR"/>
+        <result property="createTime" column="createTime" jdbcType="TIMESTAMP"/>
+        <result property="questionCount" column="questionCount" jdbcType="INTEGER"/>
+        <result property="finishedCount" column="finishedCount" jdbcType="INTEGER"/>
+    </resultMap>
+    <sql id="Base_Column_List">
+        id,practice_answer,question_id,
+        create_user,correct,create_time
+    </sql>
+    <select id="selectPracticeList" resultMap="practiceListMap">
+        SELECT
+            a.id,
+            a.subject_name,
+            IFNULL(questionCount, 0) AS questionCount,
+            finishedCount,
+            c.create_time
+        FROM
+            tbl_subject a
+                LEFT JOIN (
+                SELECT
+                    subject_id,
+                    COUNT(*) questionCount
+                FROM
+                    tbl_question
+                WHERE
+                    question_type IN (1, 2, 3)
+                GROUP BY
+                    subject_id
+            ) b ON a.id = b.subject_id
+                LEFT JOIN (
+                SELECT
+                    MAX(create_time) AS create_time,
+                    count(*) AS finishedCount,
+                    subject_id
+                FROM
+                    tbl_question_practice
+                WHERE
+                    create_user = #{vo.userId}
+                GROUP BY
+                    subject_id
+            ) c ON a.id = c.subject_id
+        <where>
+            <if test="vo.userId != null">
+                and a.deleted = FALSE
+            </if>
+            <if test="vo.subjectId != null and vo.subjectId != 0">
+                and a.id = #{vo.subjectId}
+            </if>
+        </where>
+
+    </select>
+    <select id="selectLastId" resultType="java.lang.Integer">
+        select question_id from tbl_question_practice
+        where create_time = (select MAX(create_time) from tbl_question_practice where subject_id = #{subjectId} and create_user = #{userId})
+    </select>
+    <select id="selectByQuestionId" resultMap="BaseResultMap">
+        select practice_answer,correct from tbl_question_practice
+        where question_id = #{questionId} and create_user = #{userId}
+    </select>
+</mapper>

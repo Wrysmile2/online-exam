@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xyh.mapper.WrongMapper">
+
+    <resultMap id="BaseResultMap" type="com.xyh.pojo.Wrong">
+            <id property="id" column="id" jdbcType="INTEGER"/>
+            <result property="questionId" column="question_id" jdbcType="INTEGER"/>
+            <result property="answer" column="answer" jdbcType="VARCHAR"/>
+            <result property="createUser" column="create_user" jdbcType="INTEGER"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="subjectId" column="subject_id" jdbcType="INTEGER"/>
+    </resultMap>
+    
+    <resultMap id="wrongItemMap" type="com.xyh.vo.response.student.WrongDataItem" extends="BaseResultMap">
+        <result property="questionType" column="question_type" jdbcType="INTEGER"/>
+        <result property="questionName" column="question_name" jdbcType="VARCHAR"/>
+        <result property="answerA" column="answer_a" jdbcType="VARCHAR"/>
+        <result property="answerB" column="answer_b" jdbcType="VARCHAR"/>
+        <result property="answerC" column="answer_c" jdbcType="VARCHAR"/>
+        <result property="answerD" column="answer_d" jdbcType="VARCHAR"/>
+        <result property="correctAnswer" column="correct_answer" jdbcType="VARCHAR"/>
+        <result property="questionScore" column="question_score" jdbcType="DOUBLE"/>
+        <result property="difficulty" column="difficulty" jdbcType="INTEGER"/>
+        <result property="questionDesc" column="question_desc" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,question_id,answer,
+        create_user,create_time,subject_id
+    </sql>
+    <select id="selectByQuestionIdAndCreateUser" resultMap="BaseResultMap">
+        select * from tbl_wrong where question_id = #{questionId} and create_user = #{createUser}
+    </select>
+    <select id="selectWrongList" resultType="com.xyh.vo.response.student.WrongIndexVO">
+<!--        select b.id,subject_name subjectName ,count(*) wrongCount from tbl_wrong a
+           left join tbl_subject b
+            on a.subject_id = b.id
+        <where>
+            <if test="vo.userId != null">
+                and a.create_user = #{vo.userId}
+            </if>
+            <if test="vo.subjectId != -1 and vo.subjectId != null">
+                and subject_id = #{vo.subjectId}
+            </if>
+        </where>
+        group by subject_id-->
+        SELECT
+            a.id,
+            a.subject_name,
+            b.wrongCount
+        FROM
+            tbl_subject a
+            INNER JOIN (
+            SELECT
+            count(*) AS wrongCount,
+            subject_id
+            FROM
+            tbl_wrong
+            <where>
+                <if test="vo.userId != null">
+                    and create_user = #{vo.userId}
+                </if>
+            </where>
+            GROUP BY
+            subject_id
+        ) b ON a.id = b.subject_id
+        <where>
+            and a.deleted = FALSE
+            <if test="vo.subjectId != -1 and vo.subjectId != null">
+                and subject_id = #{vo.subjectId}
+            </if>
+        </where>
+    </select>
+    
+    <select id="selectWrong" resultMap="wrongItemMap">
+        select  a.id,a.answer,
+                b.question_type,
+                b.question_name,
+                b.answer_a,b.answer_b,
+                b.answer_c,b.answer_d,
+                b.correct_answer,
+                b.question_score,
+                b.difficulty,
+                b.question_desc from(
+                    select id,question_id,answer from tbl_wrong where subject_id = #{vo.subjectId} and create_user = #{vo.userId}) a
+                    left join tbl_question b
+                      on a.question_id = b.id
+    </select>
+</mapper>

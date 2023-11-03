@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xyh.mapper.LogMapper">
+
+    <resultMap id="BaseResultMap" type="com.xyh.pojo.Log">
+            <id property="id" column="id" jdbcType="INTEGER"/>
+            <result property="logContent" column="log_content" jdbcType="VARCHAR"/>
+            <result property="isLogin" column="is_login" jdbcType="TINYINT"/>
+            <result property="username" column="username" jdbcType="VARCHAR"/>
+            <result property="createUser" column="create_user" jdbcType="INTEGER"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,log_content,user_name,
+        create_user,create_time
+    </sql>
+<!--            适合MySQL5.7以下版本的SQL
+          SELECT DAY(create_time) `name`,COUNT(*) `value` from tbl_log
+        where is_login = true AND  create_time BETWEEN #{minTime} AND #{maxTime}
+        GROUP BY CONVERT(create_time,DATE)
+        ORDER BY create_time-->
+    <select id="getActiveData" resultType="com.xyh.vo.response.other.KeyValue">
+
+        SELECT COUNT(*) `value`, DAY(create_time) `name` FROM tbl_log
+        WHERE is_login = true AND MONTH(create_time) = MONTH(NOW())
+        GROUP BY DAY(create_time)
+        ORDER BY DAY(create_time)
+    </select>
+    <select id="getActiveDataByCondition" resultType="com.xyh.vo.response.other.KeyValue">
+        select a_date as `name`,IFNULL(`value`,0) as `value` FROM
+            (select date_add(#{beginTime},interval @i:=@i+1 day) as a_date
+             from (
+                 <foreach collection="list" item="index" separator="union all">
+                     select 1
+                 </foreach>
+                      ) as tmp,
+                  (select @i:= -1) t) a
+                left join
+            (
+                SELECT
+                    DATE_FORMAT(create_time, '%Y-%m-%d') AS log_date,
+                    count(*) AS `value`
+                FROM
+                    tbl_log
+                WHERE
+                    is_login = TRUE AND
+                    DATE_FORMAT(create_time, '%Y-%m-%d') BETWEEN #{beginTime} AND #{endTime}
+                GROUP BY
+                    DATE_FORMAT(create_time, '%Y-%m-%d')
+            ) b ON a.a_date = b.log_date
+    </select>
+
+</mapper>

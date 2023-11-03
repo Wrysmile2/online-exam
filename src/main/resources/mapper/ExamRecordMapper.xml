@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xyh.mapper.ExamRecordMapper">
+
+    <resultMap id="BaseResultMap" type="com.xyh.pojo.ExamRecord">
+            <id property="id" column="id" jdbcType="INTEGER"/>
+            <result property="examId" column="exam_id" jdbcType="INTEGER"/>
+            <result property="totalScore" column="total_score" jdbcType="DOUBLE"/>
+            <result property="doTime" column="do_time" jdbcType="INTEGER"/>
+            <result property="createUser" column="create_user" jdbcType="INTEGER"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="iscorrected" column="iscorrected" jdbcType="BIT"/>
+    </resultMap>
+
+    <resultMap id="recordMap" type="com.xyh.vo.response.student.RecordRespVO" extends="BaseResultMap">
+        <result property="subjectName" column="subject_name" jdbcType="VARCHAR"/>
+        <result property="examName" column="exam_name" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <resultMap id="ScoreMap" type="com.xyh.vo.response.teacher.ScoreDetailRespVO">
+        <result property="account" column="account" jdbcType="VARCHAR"/>
+        <result property="username" column="username" jdbcType="VARCHAR"/>
+        <result property="totalScore" column="total_score" jdbcType="DOUBLE"/>
+        <result property="iscorrected" column="iscorrected" jdbcType="BIT"/>
+    </resultMap>
+
+    <resultMap id="ToMarkRecordMap" type="com.xyh.vo.response.teacher.ToMarExamRecordRespVO">
+        <result property="id" column="id" jdbcType="INTEGER"/>
+        <result property="username" column="username" jdbcType="VARCHAR"/>
+        <result property="examName" column="exam_name" jdbcType="VARCHAR"/>
+        <result property="classesName" column="classes_name" jdbcType="VARCHAR"/>
+        <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,exam_id,total_score,
+        do_time,create_user,create_time,
+        iscorrected
+    </sql>
+    <!--批量更新数据 -->
+    <update id="updateBatch">
+        <foreach collection="list" item="item" separator=";">
+            UPDATE tbl_exam_question_answer
+            SET correct_error = #{item.correctError},
+             score = #{item.score}
+            WHERE id = #{item.id}
+        </foreach>
+
+    </update>
+    <select id="selectPageList" resultMap="recordMap">
+        select b.id,a.total_score,a.create_time,a.iscorrected,a.do_time,b.exam_name,c.subject_name from (
+            select * from tbl_exam_record where create_user = #{vo.userId}) a
+        left join tbl_exam b
+            on a.exam_id = b.id
+        left join tbl_subject c
+            on b.subject_id = c.id
+        <where>
+            <if test="vo.examName != '' and vo.examName != null">
+                and b.exam_name like concat('%',#{vo.examName},'%')
+            </if>
+        </where>
+        order by a.create_time desc
+    </select>
+    <select id="selectScoreList" resultMap="ScoreMap">
+        SELECT
+            account,
+            username,
+            IFNULL(total_score,0) AS total_score,
+            iscorrected
+        FROM
+            tbl_user a
+                LEFT JOIN (
+                SELECT
+                    total_score,iscorrected,create_user
+                FROM
+                    tbl_exam_record
+                WHERE
+                    exam_id = #{examId}
+            ) b ON a.id = b.create_user
+        WHERE
+            a.classes_id = #{classesId}
+          AND a.role = 2
+        ORDER BY total_score DESC, account ASC
+    </select>
+
+
+    <select id="selectMarkPageList" resultMap="ToMarkRecordMap" >
+        SELECT
+            a.id,
+            b.exam_name,
+            c.username,
+            d.classes_name,
+            a.create_time
+        FROM
+            tbl_exam_record a
+                INNER JOIN (
+                SELECT
+                    id,
+                    exam_name
+                FROM
+                    tbl_exam
+                <where>
+                    <if test="vo.examName != '' and vo.examName != null">
+                        exam_name like concat('%',#{vo.examName},'%')
+                    </if>
+                </where>
+--                 WHERE
+--                     exam_name LIKE '%长沙%'
+            ) b ON a.exam_id = b.id
+                AND a.iscorrected = FALSE
+                INNER JOIN (
+                SELECT
+                    id,
+                    username,
+                    classes_id
+                FROM
+                    tbl_user
+                <where>
+                    <if test="vo.classesId != null">
+                        classes_id = #{vo.classesId}
+                    </if>
+                </where>
+            ) c ON c.id = a.create_user
+                INNER JOIN tbl_classes d ON c.classes_id = d.id
+        ORDER BY
+            a.create_time DESC
+    </select>
+    <select id="selectKVS" resultType="com.xyh.vo.response.other.KeyValue">
+        SELECT
+            exam_name AS `name`,
+            IFNULL(c.total_score, 0) AS `value`
+        FROM
+            (
+                SELECT
+                    exam_id
+                FROM
+                    tbl_exam_classes_rel
+                WHERE
+                    classes_id = #{vo.classesId}
+            ) a
+                LEFT JOIN tbl_exam b ON a.exam_id = b.id
+                LEFT JOIN tbl_exam_record c ON a.exam_id = c.exam_id
+                AND c.create_user = #{vo.id}
+        ORDER BY
+            b.create_time DESC
+            LIMIT 0,7
+    </select>
+</mapper>
