@@ -5,7 +5,7 @@
 
 
 #### 二、项目演示
-![人员管理](README/1.png)
+![人员管理](images/1.png)
 ![数据统计首页](README/2.png)
 ![题库首页](README/3.png)
 ![试卷首页](README/4.png)
